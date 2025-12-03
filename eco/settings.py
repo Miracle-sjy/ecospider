@@ -49,9 +49,11 @@ TELNETCONSOLE_ENABLED = False
 PROXY_LIST_FILE = 'eco/proxies.txt'
 
 # 下载中间件
-# DOWNLOADER_MIDDLEWARES = {
-#     'eco.middlewares.RandomProxyMiddleware': 350,   # 数字 > retryMiddleware 即可
-# }
+DOWNLOADER_MIDDLEWARES = {
+      # 数字 < 543，放在代理/重试之前
+      'eco.middlewares.FingerPrintMiddleware': 400,
+    # 'eco.middlewares.RandomProxyMiddleware': 350,   # 数字 > retryMiddleware 即可
+}
 
 # 重试 3 次换 3 个 IP 仍失败才放弃
 RETRY_TIMES = 3

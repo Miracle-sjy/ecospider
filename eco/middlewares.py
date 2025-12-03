@@ -11,6 +11,8 @@ import random
 import base64
 from eco import settings
 
+from eco.fingerprints import random_headers
+
 #ip池代理
 class RandomProxyMiddleware:
     def __init__(self):
@@ -30,6 +32,13 @@ class RandomProxyMiddleware:
         self.proxies = [p for p in self.proxies if p != request.meta.get('proxy')]
         # 必须返回 Request 才会重试
         return request
+
+class FingerPrintMiddleware:
+    def process_request(self, request, spider):
+        # 随机指纹灌进请求头
+        request.headers.update(random_headers())
+        spider.logger.debug(f"FP → {request.headers['User-Agent']}")
+        return None
 
 class EcoSpiderMiddleware:
     # Not all methods need to be defined. If a method is not defined,
