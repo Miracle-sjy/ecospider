@@ -72,9 +72,12 @@ RETRY_HTTP_CODES = [500, 502, 503, 504, 408, 429]
 
 # Enable or disable extensions
 # See https://docs.scrapy.org/en/latest/topics/extensions.html
-#EXTENSIONS = {
-#    "scrapy.extensions.telnet.TelnetConsole": None,
-#}
+EXTENSIONS = {
+    'eco.extensions.StatsPusher': 500,
+   # "scrapy.extensions.telnet.TelnetConsole": 500,
+}
+STATS_REDIS = 'redis://localhost:6380'   # 监控专用 Redis
+
 ##redis
 ##redis端口
 REDIS_URL = 'redis://localhost:16379'

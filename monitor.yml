@@ -1,0 +1,24 @@
+version: "3.8"
+services:
+  redis-monitor:
+    image: redis:7-alpine
+    container_name: redis-monitor
+    ports:
+      - "6380:6379"               # 与爬虫 Redis 隔离，避免 key 冲突
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-mon-data:/data
+
+  grafana:
+    image: grafana/grafana:10.2.2
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: admin
+    volumes:
+      - grafana-data:/var/lib/grafana
+
+volumes:
+  redis-mon-data:
+  grafana-data:
