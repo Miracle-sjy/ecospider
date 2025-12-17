@@ -24,8 +24,8 @@ scrapy+redis+kafka+mongodb
 |------|----|----|----|
 | A    | 代理池 + 失败重试 | 30 min | 文件/免费 API 自动换 IP |
 | B完成！ | 监控仪表盘 | 10 min | Redis → Grafana 实时曲线 + 告警 |
-| C    | 自动打包 & CI | 20 min | GitHub Actions：push tag → 镜像 → 部署 |
-| D进行中 | 多站点（books） | 30 min | 独立队列/Topic/集合，一键加第 3 站 |
+| C完成！ | 自动打包 & CI | 20 min | GitHub Actions：push tag → 镜像 → 部署 |
+| D    | 多站点（books） | 30 min | 独立队列/Topic/集合，一键加第 3 站 |
 | E    | 字段加密/脱敏 | 15 min | 敏感字段落库前哈希或打码 |
 | F    | 限速自适应 | 20 min | 按失败率动态调整并发 & 延迟 |
 | G    | 数据双写 | 15 min | 同时写 Mongo + ES / ClickHouse |
