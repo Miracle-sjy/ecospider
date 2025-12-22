@@ -1,4 +1,136 @@
-scrapy+redis+kafka+mongodb
+# 🕷️ eco – 分布式 Scrapy-Redis 爬虫框架
+
+> 一套「开箱即用、插件化、可水平扩展」的通用爬虫骨架，以 Scrapy-Redis 为核心，支持多站点、多算法、自动参数刷新与 Docker 一键部署。
+
+---
+
+## 📦 核心能力
+
+| 模块             | 特性                                  | 状态 |
+| ---------------- | ------------------------------------- | ---- |
+| **Scrapy-Redis** | 分布式调度、去重、断点续爬            | ✅    |
+| **插件化解密**   | `eco/decode/<site>.py` 单文件即一站点 | ✅    |
+| **自动刷新**     | Token/签名/时间戳失效自动重计算       | ✅    |
+| **代理池**       | 中间件级动态切换                      | ✅    |
+| **MongoDB**      | 默认持久化（支持管道复写）            | ✅    |
+| **Docker**       | 开发/生产同一镜像                     | ✅    |
+| **Kafka**        | 可选消息队列导出                      | ✅    |
+
+---
+
+## 🚀 5 分钟上手指南
+
+### 1. 本地调试
+```bash
+git clone <repo>
+cd eco
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+
+# 示例：闲鱼 Feed
+redis-cli lpush xianyu:start_urls 1
+scrapy crawl xianyu
+```
+
+### 2. 插件开发（新增站点）
+```bash
+# 1) 解密插件
+cat > eco/decode/foo.py <<'EOF'
+def sign(inputs: dict) -> str:
+    return hashlib.md5(f"{inputs['key']}{inputs['t']}".encode()).hexdigest()
+EOF
+
+# 2) Spider（name=文件名）
+cat > eco/spiders/foo_feed.py <<'EOF'
+from scrapy_redis.spiders import RedisSpider
+class FooFeedSpider(RedisSpider):
+    name = "foo"
+    redis_key = "foo:start_urls"
+EOF
+
+# 3) 推入 Redis
+redis-cli lpush foo:start_urls 1
+```
+
+**无需改动工厂、无需重启服务** —— 插件即插即用。
+
+---
+
+## 📁 项目结构
+
+```
+eco/                      # 项目根
+├── eco/                  # 核心包
+│   ├── decode/           # 插件化解密 ← 单文件 = 单站点
+│   ├── spiders/          # Spider 集合
+│   ├── middlewares.py    # 签名/代理/刷新
+│   ├── pipelines.py      # MongoDB 默认落地
+│   └── settings.py       # 分布式配置
+├── .github/              # CI 工作流
+├── docker-compose.yml    # 一键集群
+├── requirements.txt      # 依赖锁定
+└── Dockerfile            # 构建镜像
+```
+
+---
+
+## 🔌 //插件接口约定
+
+| 文件名      | 必须实现                    | 可选                             |
+| ----------- | --------------------------- | -------------------------------- |
+| `<site>.py` | `sign(inputs: dict) -> str` | `refresh_inputs(inputs) -> dict` |
+
+工厂 3 行代码，运行时 `importlib` 动态加载：
+
+```python
+from eco.decode import get_signer
+sign = get_signer(spider.name)   # 返回模块，直接调 sign(...)
+```
+
+---
+
+## 🔄 //自动参数刷新
+
+Spider 抛出 `TokenRefreshException` →  
+`RetrySignMiddleware` 自动调用插件的 `refresh_inputs()` →  
+生成新 `t`、`sign`、`Cookie` 并重试，**无人值守**。
+
+---
+
+## 🐳 生产部署
+
+```bash
+# 单节点
+docker-compose up -d
+
+# 扩容爬虫
+docker-compose up -d --scale crawler=4
+```
+
+镜像已含 Chrome、依赖、代码；挂载卷即可热更新插件。
+
+---
+
+## 📊 监控 & 日志
+
+- Scrapy 默认日志 + Redis 统计  
+- 可选 Prometheus Exporter（见 `monitor.yml`）  
+- Kafka 导出实时数据流（`kafka_consumer.py` 示例）
+
+---
+
+## 🤝 //参与贡献
+
+1. Fork 仓库  
+2. 新建 `feat/foo` 分支  
+3. 提交插件或核心改进  
+4. PR → CI 自动跑单元测试 & 镜像构建
+
+---
+
+## 📄 许可证
+
+MIT © 2024 eco-org
 
 
 
