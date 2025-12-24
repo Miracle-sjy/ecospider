@@ -50,9 +50,12 @@ PROXY_LIST_FILE = 'eco/proxies.txt'
 
 # 下载中间件
 DOWNLOADER_MIDDLEWARES = {
-      # 数字 < 543，放在代理/重试之前
-      'eco.middlewares.FingerPrintMiddleware': 400,
+    # 数字 < 543，放在代理/重试之前
+    'eco.middlewares.FingerPrintMiddleware': 400,
     'eco.dupfilter_mw.RedisDupFilterMiddleware': 543,
+    # 闲鱼签名 & 刷新
+     "eco.middlewares.SignMiddleware": 600,
+    "eco.middlewares.TokenRefreshMiddleware": 650,
     # 'eco.middlewares.RandomProxyMiddleware': 350,   # 数字 > retryMiddleware 即可
 }
 

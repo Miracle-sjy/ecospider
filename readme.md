@@ -63,15 +63,26 @@ eco/                      # 项目根
 ├── eco/                  # 核心包
 │   ├── decode/           # 插件化解密 ← 单文件 = 单站点
 │   ├── spiders/          # Spider 集合
-│   ├── middlewares.py    # 签名/代理/刷新
-│   ├── pipelines.py      # MongoDB 默认落地
-│   └── settings.py       # 分布式配置
-├── .github/              # CI 工作流
-├── docker-compose.yml    # 一键集群
+│   ├── middlewares.py    # 代理·指纹·签名·Token 刷新 一条链
+│   ├── pipelines.py      # Mongo 默认落地 + Kafka 导出
+│   ├── settings.py       # 分布式、Redis、代理、Mongo 全配置
+│   ├── exceptions.py     # 自定义异常（TokenRefreshException）
+│   ├── fingerprints.py   # UA / 指纹生成库
+│   ├── items.py          # 统一 Item 定义
+│   ├── models.py         # Mongo 集合映射（可选 ODM）
+│   ├── extensions.py     # Scrapy 扩展钩子（监控、统计）
+│   └── starturl_redis.py # 脚本：向 Redis 灌起始 URL
+├── .github/              # CI 工作流：测试 + 镜像构建
+├── docker-compose.yml    # 一键集群（Scrapy-Redis + Mongo + Kafka）
+├── Dockerfile            # 含 Chrome 的瘦镜像
 ├── requirements.txt      # 依赖锁定
-└── Dockerfile            # 构建镜像
+├── scrapy.cfg            # Scrapy 项目标识
+├── .gitignore.txt        # 忽略 venv / pyc / log
+├── proxies.txt           # 代理池列表（ip:port 每行）
+├── monitor.yml           # Prometheus 指标导出（可选）
+├── kafka_consumer.py     # 示例：消费 Kafka 结果
+└── kafkatest.py          # Kafka 连通性快速测试
 ```
-
 ---
 
 ## 🔌 //插件接口约定
@@ -152,16 +163,16 @@ MIT © 2024 eco-org
    - `kafka_consumer.py` 消费落库  
 
 # ❌ 未完成
-| 编号   | 功能 | 工作量 | 备注 |
-|------|----|----|----|
-| A    | 代理池 + 失败重试 | 30 min | 文件/免费 API 自动换 IP |
-| B完成！ | 监控仪表盘 | 10 min | Redis → Grafana 实时曲线 + 告警 |
-| C完成！ | 自动打包 & CI | 20 min | GitHub Actions：push tag → 镜像 → 部署 |
-| D    | 多站点（books） | 30 min | 独立队列/Topic/集合，一键加第 3 站 |
-| E    | 字段加密/脱敏 | 15 min | 敏感字段落库前哈希或打码 |
-| F    | 限速自适应 | 20 min | 按失败率动态调整并发 & 延迟 |
-| G    | 数据双写 | 15 min | 同时写 Mongo + ES / ClickHouse |
-| H    | 健康探针 | 10 min | `/health` 接口，K8s 自动重启 |
-| I    | 单元测试 & CI | 25 min | `pytest` + `scrapy.contracts`，PR 自动跑 |
+| 编号   | 功能 | 描述                                   | 备注 |
+|------|----|--------------------------------------|----|
+| A    | 代理池 + 失败重试 | 文件/免费 API 自动换 IP                     |
+| B完成！ | 监控仪表盘 | Redis → Grafana 实时曲线 + 告警            |
+| C完成！ | 自动打包 & CI | GitHub Actions：push tag → 镜像 → 部署    |
+| D    | 多站点（books）  | 独立队列/Topic/集合，一键加第 3 站               |
+| E    | 字段加密/脱敏  | 敏感字段落库前哈希或打码                         |
+| F    | 限速自适应  | 按失败率动态调整并发 & 延迟                      |
+| G    | 数据双写 | 同时写 Mongo + ES / ClickHouse          |
+| H    | 健康探针  | `/health` 接口，K8s 自动重启                |
+| I    | 单元测试 & CI  | `pytest` + `scrapy.contracts`，PR 自动跑 |
 
 监控部分可以加普罗米修斯更完善
