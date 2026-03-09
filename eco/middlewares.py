@@ -12,6 +12,8 @@ import random
 import base64
 from eco import settings
 import time
+from typing import Optional, List
+from scrapy import settings
 from eco.fingerprints import random_headers
 
 from eco.decode import get_signer
@@ -104,25 +106,87 @@ class SignMiddleware:
         request.meta.update(t=t, sign=sig, token=token)
         spider.logger.debug(f"[Sign] t={t}  sign={sig}")
         return request.replace(url=url)
-#ip池代理
-class RandomProxyMiddleware:
-    def __init__(self):
-        with open(settings.PROXY_LIST_FILE, 'r') as f:
-            self.proxies = [line.strip() for line in f if line.strip()]
+#ip池代理（扩展预留）
+class BaseProxyPool:
+    """代理池抽象基类 - 所有代理源继承此类"""
+    def get_proxy(self) -> Optional[str]:
+        """获取ip代理，返回http://ip:port 或None（直连）"""
+        raise NotImplementedError
 
-    def process_request(self, request, spider):
-        url = random.choice(self.proxies)
-        request.meta['proxy'] = url
-        spider.logger.debug(f"Use proxy: {url}")
-        return None
+    def mark_faild(self,proxy:str):
+        """标记失败，子类决定是否剔除"""
+        pass
 
-    def process_exception(self, request, exception, spider):
-        # 任何网络异常 -> 换代理重试
-        spider.logger.warning(f"Proxy {request.meta.get('proxy')} failed: {exception}")
-        # 把失败代理从列表踢掉（可选）
-        self.proxies = [p for p in self.proxies if p != request.meta.get('proxy')]
-        # 必须返回 Request 才会重试
-        return request
+class DirectPool(BaseProxyPool):
+    """直连模式-只用本机IP"""
+    def get_proxy(self) -> Optional[str]:
+        return None #只使用本机网络
+
+class FilePool(BaseProxyPool):
+    """
+    预留扩展：从文件加载代理
+    用法：FilePool（"proxies.txt"）
+    """
+    def __init__(self,filepath:str):
+        self.filepath = filepath
+        self.proxies:List[str] = []
+        self.failed_count:dict = {} #失败计数，防误杀
+        self.load()
+
+    def _load(self):
+        """安全加载，文件不存在也不崩"""
+        try:
+            with open(self.filepath,'r',encoding='utf-8') as f:
+                self.proxies = [
+                    line.strip() for line in f
+                    if line.strip() and not line.startswith('#')
+                ]
+            print(f"[FilePool]加载{len(self.proxies)}个代理：{self.filepath}")
+        except FileNotFoundError:
+            print(f"[FilePool]警告：文件不存在{self.filepath},回退直连")
+            self.proxies = []
+
+    def get_proxy(self) -> Optional[str]:
+        if not self.proxies:
+            return None #无代理直连
+
+        #优先选失败少的（<3）次，都失败就随机
+        available = [p for p in self.proxies if self.failed_count.get(p,0) < 3]
+        if not available:
+            print("[FilePool] 所有代理均失败，回退直连")
+            return None
+
+        return random.choice(available)
+
+    def mark_failed(self, proxy: str):
+        """失败3次才剔除，防网络抖动误杀"""
+        self.failed_count[proxy] = self.failed_count.get(proxy, 0) + 1
+        fail_times = self.failed_count[proxy]
+
+        if fail_times >= 3:
+            print(f"[FilePool] 剔除代理（失败{fail_times}次）: {proxy}")
+            self.proxies = [p for p in self.proxies if p != proxy]
+        else:
+            print(f"[FilePool] 代理失败{fail_times}次: {proxy}")
+
+
+# ============ 工厂函数：一键切换 ============
+
+def create_proxy_pool(pool_type: str = "direct", **kwargs) -> BaseProxyPool:
+    """
+    创建代理池 - 改这里切换全局策略
+
+    用法:
+        pool = create_proxy_pool("direct")                          # 直连
+        pool = create_proxy_pool("file", filepath="proxies.txt")    # 文件
+    """
+    if pool_type == "direct":
+        return DirectPool()
+    elif pool_type == "file":
+        return FilePool(kwargs.get("filepath", "proxies.txt"))
+    else:
+        raise ValueError(f"未知代理池类型: {pool_type}")
+## 未完成
 
 #UA 指纹
 class FingerPrintMiddleware:

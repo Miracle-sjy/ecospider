@@ -77,7 +77,7 @@ eco/                      # 项目根
 ├── Dockerfile            # 含 Chrome 的瘦镜像
 ├── requirements.txt      # 依赖锁定
 ├── scrapy.cfg            # Scrapy 项目标识
-├── .gitignore        # 忽略 venv / pyc / log
+├── .gitignore       	  # 忽略 venv / pyc / log
 ├── proxies.txt           # 代理池列表（ip:port 每行）
 ├── monitor.yml           # Prometheus 指标导出（可选）
 ├── kafka_consumer.py     # 示例：消费 Kafka 结果
